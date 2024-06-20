@@ -1,2 +1,4 @@
 __pycache__
 testing
+build
+*egg-info
