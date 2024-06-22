@@ -1,11 +1,11 @@
 from math import sqrt
-from..constants import AU
-from ..analytic import (
+from .constants import AU
+from .analytic import (
     circular_velocity as circ_v, 
     orbital_period, 
     orbital_velocity as visviva
     )
-from ..bodies import Celestial
+from .bodies import Celestial
 
 class Interplanetary:
     def __init__(self, central_body: Celestial, 
