@@ -2,6 +2,7 @@
 """
 # Conic sections
 from math import radians, degrees, sin, cos, tan, asin, acos, atan, sqrt, pi
+import numpy as np
 
 def orbital_height(a, e, f):
     """ Orbital height for orbital position f
@@ -75,3 +76,36 @@ def flight_path_angle(e, f):
 # Hyperbolic
 def hyperbolic_excess_velocity(mu, r, C3):
     return sqrt(2*mu/r + C3)
+
+# Conversion of orbit representations
+def state2kep(mu, vr, vv):
+    norm = np.linalg.norm
+    ary = np.array
+
+    vr = ary(vr)
+    vv = ary(vv)
+    r = norm(vr)
+    v = norm(vv)
+
+    a = r / (2-r*v**2/mu)
+
+    ve = (v**2/mu - 1/r) * vr - 1/mu * (vr @ vv) * vv
+    e = norm(ve)
+
+    h = np.cross(vr, vv)
+    i = np.arccos(h[2]/norm(h))
+    n = np.cross(ary([0,0,1]), h/norm(h))
+
+    Omega = np.arccos(n[0] / norm(n))
+    if n[1] < 0:
+        Omega = 2*np.pi - Omega
+
+    w = np.arccos( n@ve / norm(n) / e)
+    if ve[2] < 0:
+        w = 2*np.pi - w
+
+    f = np.arccos( ve@vr / e / r)
+    if np.dot(ve, vr) < 0:
+        f = 2*np.pi - f
+    
+    return a, e, i, Omega, w, f
