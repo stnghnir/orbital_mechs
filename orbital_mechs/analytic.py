@@ -108,19 +108,21 @@ def state2kep(mu, vr, vv, angles="RAD"):
     e = norm(ve)
     # Specific Orbital Angular Momentum
     vh = np.cross(vr, vv)
+    h = norm(vh)
     # Inclination
-    i = np.arccos(vh[2] / norm(vh))
+    i = np.arccos(vh[2] / h) %(2*pi)
     # Nodal Vector
-    n = np.cross(ary([0,0,1]), head(vh))
+    vn = np.cross(ary([0,0,1]), head(vh))
+    n = norm(vn)
     # Right Ascension of the Ascending Node
-    RAAN = np.arccos(n[0] / norm(n))
-    if n[1] < 0: RAAN = 2*np.pi - RAAN
+    RAAN = np.arccos(vn[0] / n) %(2*pi)
+    if vn[1] < 0: RAAN = 2*pi - RAAN
     # Argument of Periapsis
-    w = np.arccos( n@ve / norm(n) / e)
-    if ve[2] < 0: w = 2*np.pi - w
+    w = np.arccos( vn@ve / n / e) %(2*pi)
+    if ve[2] < 0: w = 2*pi - w
     # True Anomaly
-    f = np.arccos( ve@vr / e / r)
-    if np.dot(ve, vr) < 0: f = 2*np.pi - f
+    f = np.arccos( ve@vr / e / r) %(2*pi)
+    if vr@vv < 0: f = 2*pi - f
     # RAD 2 DEG
     if angles=="DEG":
         i = degrees(i)
@@ -160,3 +162,14 @@ def kep2state(mu, a, e, i, RAAN, w, f, angles="RAD"):
     ])
 
     return vr, vv
+
+def test_state2kep():
+    import bodies
+
+    r = [-1.31654852e+08, -6.64013014e+07, -2.87818049e+07] 
+    v = [ 13.85360171, -24.05164667, -10.42625692]
+    a, e, i, RAAN, w, f = state2kep(bodies.sun.mu, r, v, angles="DEG")
+    print(a, e, i, RAAN, w, f)
+
+if __name__ == "__main__":
+    test_state2kep()
