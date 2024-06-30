@@ -10,8 +10,11 @@ from .analytic import (
     orbital_position,
     orbital_velocity,
     plane_change
-)
+    )
 
 from . import constants
 
-from .interplanetary import Interplanetary2D
+from .interplanetary import (
+    Interplanetary2D,
+    Transfer
+    )
