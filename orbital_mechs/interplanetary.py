@@ -7,7 +7,7 @@ from .analytic import (
     )
 from .bodies import Celestial
 
-class Interplanetary:
+class Interplanetary2D:
     def __init__(self, central_body: Celestial, 
                  departure_body: Celestial, 
                  arrival_body: Celestial) -> None:
@@ -57,3 +57,7 @@ class Interplanetary:
         self.arrival_deltaV = sqrt(2*self.arrival.mu/arrival_height + self.arrival_c3) - circ_v(self.arrival.mu, arrival_height)
 
         return self.departure_deltaV + self.arrival_deltaV
+
+class Transfer:
+    def __init__(self) -> None:
+        pass

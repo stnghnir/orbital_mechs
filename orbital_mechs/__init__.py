@@ -14,4 +14,4 @@ from .analytic import (
 
 from . import constants
 
-from .interplanetary import Interplanetary
+from .interplanetary import Interplanetary2D
