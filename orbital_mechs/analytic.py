@@ -2,6 +2,10 @@
 """
 # Conic sections
 from math import radians, degrees, sin, cos, tan, asin, acos, atan, sqrt, pi
+import numpy as np
+norm = np.linalg.norm
+head = lambda vec: vec/norm(vec)
+ary = np.array
 
 def orbital_height(a, e, f):
     """ Orbital height for orbital position f
@@ -23,23 +27,27 @@ def orbital_velocity(mu, a, r):
     """
     return sqrt( mu*(2/r-1/a) )
 
-def circular_velocity(mu, r):
-    """ Circular Velocity
+def orbital_angular_momentum(mu, a, e):
+    """ Orbital Angular Momentum
     """
-    return sqrt(mu/r)
+    return sqrt(mu*a*(1-e**2))
 
 def orbital_period(mu, a):
     """ Orbital Period in seconds
     """
     return 2*pi*sqrt(a**3/mu)
 
+def circular_velocity(mu, r):
+    """ Circular Velocity
+    """
+    return sqrt(mu/r)
+
 def getTimeAtf(mu, a, e, f):
     """ Application of the kepler equation
     """
     f = radians(f)
     tanE2 = sqrt((1-e)/(1+e)) * tan(f/2)
-    E = 2*atan(tanE2)
-    if E<0:E+=2*pi
+    if E:=(2*atan(tanE2))<0:E+=2*pi
     M = E - e*sin(E)
     return M*sqrt(a**3/mu)
 
@@ -75,3 +83,93 @@ def flight_path_angle(e, f):
 # Hyperbolic
 def hyperbolic_excess_velocity(mu, r, C3):
     return sqrt(2*mu/r + C3)
+
+# Conversion of orbit representations
+def state2kep(mu, vr, vv, angles="RAD"):
+    """ Converts state vector to kepler elements
+    a: Semi-Major Axis [km]
+    e: Eccentricity [-]
+    i: Inclination [rad]
+    RAAN: Longitude / Right Ascension of the Ascending Node [rad]
+    w: Argument of Periapsis [rad]
+    f: True Anomaly [rad]
+
+    With kwarg angles="DEG", angles are converted to degree
+    """
+    # Ensures np.array
+    vr = ary(vr)
+    vv = ary(vv)
+    r = norm(vr)
+    v = norm(vv)
+    # Semi-Major-Axis
+    a = r / (2-r*v**2/mu)
+    # Eccentricity (and its vector )
+    ve = (v**2/mu - 1/r) * vr - 1/mu * (vr @ vv) * vv
+    e = norm(ve)
+    # Specific Orbital Angular Momentum
+    vh = np.cross(vr, vv)
+    h = norm(vh)
+    # Inclination
+    i = np.arccos(vh[2] / h) %(2*pi)
+    # Nodal Vector
+    vn = np.cross(ary([0,0,1]), head(vh))
+    n = norm(vn)
+    # Right Ascension of the Ascending Node
+    RAAN = np.arccos(vn[0] / n) %(2*pi)
+    if vn[1] < 0: RAAN = 2*pi - RAAN
+    # Argument of Periapsis
+    w = np.arccos( vn@ve / n / e) %(2*pi)
+    if ve[2] < 0: w = 2*pi - w
+    # True Anomaly
+    f = np.arccos( ve@vr / e / r) %(2*pi)
+    if vr@vv < 0: f = 2*pi - f
+    # RAD 2 DEG
+    if angles=="DEG":
+        i = degrees(i)
+        RAAN = degrees(RAAN)
+        w = degrees(w)
+        f = degrees(f)
+
+    return a, e, i, RAAN, w, f
+
+def kep2state(mu, a, e, i, RAAN, w, f, angles="RAD"):
+    """ Converts kepler elements to state vector
+    vr: Orbital Position as vector
+    vv: Orbital Velocity as vector
+
+    With kwarg angles="DEG", angles are treated as input in degree
+    """
+    if angles=="DEG":
+        i = radians(i)
+        RAAN = radians(RAAN)
+        w = radians(w)
+        f = radians(f)
+
+    r = a*(1-e**2)/(1+e*cos(f))
+    v = orbital_velocity(mu, a, r)
+    h = orbital_angular_momentum(mu, a, e)
+
+    theta = w+f
+    vr = r * ary([
+        cos(RAAN)*cos(theta) - sin(RAAN)*sin(theta)*cos(i),
+        sin(RAAN)*cos(theta) + cos(RAAN)*sin(theta)*cos(i),
+        sin(theta)*sin(i)
+    ])
+    vv = -mu/h * ary([
+        cos(RAAN)*( sin(theta) + e*sin(w) ) + sin(RAAN)*( cos(theta) + e*cos(w) )*cos(i),
+        sin(RAAN)*( sin(theta) + e*sin(w) ) - cos(RAAN)*( cos(theta) + e*cos(w) )*cos(i),
+        -( cos(theta) + e*cos(w) )*sin(i)
+    ])
+
+    return vr, vv
+
+def test_state2kep():
+    import bodies
+
+    r = [-1.31654852e+08, -6.64013014e+07, -2.87818049e+07] 
+    v = [ 13.85360171, -24.05164667, -10.42625692]
+    a, e, i, RAAN, w, f = state2kep(bodies.sun.mu, r, v, angles="DEG")
+    print(a, e, i, RAAN, w, f)
+
+if __name__ == "__main__":
+    test_state2kep()
